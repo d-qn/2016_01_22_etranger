@@ -5,7 +5,6 @@ date: "21 January 2016"
 output: html_document
 ---
 
-
 ### Data 
 
 ##### Link 
@@ -27,46 +26,47 @@ output: html_document
 ### Open with Google Refine, set the encoding to latin and export as CSV: px-x-0103010000_101_cleaned_refined.csv
 
 ```{r}
+
 library(dplyr)
 library(tidyr)
 library(readr)
 library(swiMap)
 library(countrycode)
 
+###  -------------------------------------------------------------------------------------------------------------
+###      SETTINGS
+###  -------------------------------------------------------------------------------------------------------------  
+
 data.read <- read_csv("data/px-x-0103010000_101_cleaned_refined.csv")
+n.threshold.merge <- 1000
 
 # wide to long transform
 data <- data.read %>% gather(country, value, 3:ncol(data.read))
 
+# filter the pop non-permanent
+data %>% filter(`Type de population` == "Population résidante permanente") %>% 
 # sum the values by the pop permanente / non-permanente
-data %>% group_by(`Autorisation de résidence`, country) %>% 
-  summarise(tot = sum(value, na.rm = T)) %>% ungroup() -> data
+  group_by(`Autorisation de résidence`, country) %>% 
+  dplyr::summarise(tot = sum(value, na.rm = T)) %>% ungroup() -> data
+
+# Remove Suisses!
+data <- filter(data, data$country != "Suisse")
 data$country <- as.character(data$country)
+
+totForeigners <- sum(data$tot)
 
 ## replace unknow origin by "Inconu"
 data <- data %>% mutate(country = replace(country,
   country %in% c('Apatride', "Non attribuable selon frontières actuelles", "Sans indication"),
   "inconnu"))
 
-## find the top country
-sum <- data %>% group_by(country) %>% summarise(value = sum(tot, na.rm = T)) %>% ungroup() %>% arrange(desc(value))
-sum[sum$value < 400,'country'] %>% unlist(use.name = F) -> countries.sub
-
-# replace unfrequent country by "autres"
-data <- data %>% mutate(country = replace(country,
-  country %in% countries.sub,
-  "autres"))
-data %>% group_by(`Autorisation de résidence`, country) %>% 
-  summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> data
-
 ## match country names to translation
 idx <- match(unique(data$country), countryTranslations$FR)
 unique(data$country)[which(is.na(idx))]
 
-
 ## Hack to rename unmatched countries
 countries_rename <- 
-  c("Arabie saoudite"       , "autres"                 , "Azerbaïdjan"            , "Bosnie et Herzégovine"  ,
+  c("Arabie saoudite"       , "autres pays"                 , "Azerbaïdjan"            , "Bosnie et Herzégovine"  ,
     "Congo (Brazzaville)"     , "Congo (Kinshasa)"       , "Corée (Sud)"            , "Côte d'Ivoire"          ,
     "Danemark"                , "Egypte"                 , "Equateur"               , "Erythrée"               ,
     "Etats-Unis"              , "Ethiopie"               , "Haïti"                  , "inconnu"                ,
@@ -76,7 +76,7 @@ countries_rename <-
 ) 
 
 names(countries_rename) <- 
-  c('Arabie Saoudite', 'autres', 'Azerbaédjan', 'Bosnie-Herzégovine',
+  c('Arabie Saoudite', 'autres pays', 'Azerbaédjan', 'Bosnie-Herzégovine',
     'Congo', 'La République démocratique du Congo', 'République de Corée', "Côte d'ivoire",
     'Denmark', "Égypte", "Équateur", "Érythrée",
     "États-Unis", "Éthiopie", "Haiti", "inconnu",
@@ -85,32 +85,103 @@ names(countries_rename) <-
     "Taïwan, Province de Chine", "Viet Nam"
   )
 
-# replace names
+# replace names by hack
 data <- as.data.frame(data)
 idx <- which(data$country %in% countries_rename)
 data[idx,'country'] <- names(countries_rename)[
   match(data[idx,'country'] %>% unlist(use.names = F), countries_rename)]
 
+stopifnot(sum(data$tot) == totForeigners)
 
+
+## Continent match
 countries <- data.frame(country = unique(data$country))
 countries$iso2 <- countryTranslations[match(countries$country,countryTranslations$FR), 'iso2']
 countries$continent <- countrycode(countries$iso2, "iso2c", "continent")
 
+## Hack for non matched country to continent 
+continent.hack <- c(
+  "Cité du Vatican", "Macédoine", "Kosovo", "Brunéi Darussalam",
+  "Taïwan, Province de Chine", "Laos", "Corée (Nord)", "Emirats arabes unis", "Palestine", 
+  "Iles Salomon", "Iles Marshall", "Micronésie", "inconnu"
+)
+names(continent.hack) <- c(
+  "Europe", "Europe", "Europe", "Asia",
+  "Asia", "Asia", "Asia", "Asia", "Asia",
+  "Oceania", "Oceania", "Oceania", "inconnu"
+)
 
-### Shape the data for sunburst
+idx <- which(countries$country %in% continent.hack)
+countries[idx,'continent'] <- names(continent.hack)
+
+stopifnot(!any(is.na(countries$continent)))
+#countries[which(is.na(countries$continent)),]
+# add continent !
+data$continent <- countries[match(data$country, countries$country), 'continent']
+stopifnot(sum(data$tot) == totForeigners)
+
+## find the top country
+sum <- data %>% group_by(country) %>% dplyr::summarise(value = sum(tot, na.rm = T)) %>% 
+  ungroup() %>% arrange(desc(value))
+hist(sum$value, breaks = 1000)
+sum[sum$value < n.threshold.merge,'country'] %>% unlist(use.name = F) -> countries.sub
+stopifnot(sum(sum$value) == totForeigners)
+
+# replace unfrequent country by "autres"
+data <- data %>% mutate(country = replace(country,
+  country %in% countries.sub,
+  "autres pays"))
+
+# shape the data for plot, recompute total values
+data %>% group_by(country, continent) %>% 
+  dplyr::summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> dd
+stopifnot(sum(dd$value) == totForeigners)
+
+###  -------------------------------------------------------------------------------------------------------------
+###      PLOT SUNBURST
+###  -------------------------------------------------------------------------------------------------------------  
+library(pipeR)
+library(swiRcharts)
+library(sunburstR)
+library(htmlwidgets)
+
+seq <- paste(dd$continent, gsub("(\\-|\\,)", " ", dd$country), sep = "-")
+seqd <- data.frame(sequence = seq, freq = dd$value)
+
+leg <- c(
+  unique(data$continent), 
+  head(dd[order(dd$value, decreasing = T),'country'], 7) %>% unlist(use.names = F)
+)
+schart <- seqd %>>% sunburst(
+  count = T, colors = c(rev(swiTheme::swi_rpal[1:16]), 
+  rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = leg)
+
+# hack
+schart$sizingPolicy$browser$padding <- 1
+schart$sizingPolicy$browser$defaultWidth <- "100%"
+schart$sizingPolicy$browser$defaultHeight <- 500
+
+saveWidget(schart, file = "swissForeigners_sunburst_tmp.html", selfcontained = FALSE, libdir = "js")
+
+swi_widget("swissForeigners_sunburst_tmp.html", "swissForeigners_sunburst.html",
+    h2 = "Les étrangers en Suisse", 
+    descr = paste0("La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Elle fait partie des pays européens qui ont l'un des plus hauts taux de population étrangère. Ce graphique montre le continent et la nationalité d'origine des 2 millions d'étrangers en Suisse en 2014", "<br><br>",
+    "<i>Placez votre curseur ou tapoter sur une région du graphique pour voir les chiffres exacts</i>"),
+    h3 = "")
+
+
+# shape the data for plot, recompute total values
+# data %>% group_by(country, continent, `Autorisation de résidence`) %>% 
+#   dplyr::summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> ddd
+# stopifnot(sum(ddd$value) == totForeigners)
+# 
+# 
+# seq2 <- paste(ddd$continent, gsub("(\\-|\\,)", " ", ddd$country), gsub("(\\-|\\,)", " ", ddd$`Autorisation de résidence`), sep = "-")
+# seqd2 <- data.frame(sequence = seq2, freq = ddd$value)
+# 
+# 
+# schart2 <- seqd2 %>>% sunburst(
+#   count = T, colors = rep(swiTheme::swi_rpal[1:16], 10))
 
 
 
-
-
-
-
-```
-
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
