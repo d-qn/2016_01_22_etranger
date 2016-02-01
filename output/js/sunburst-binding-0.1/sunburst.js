@@ -191,7 +191,7 @@ HTMLWidgets.widget({
       // Transition each segment to full opacity and then reactivate it.
       d3.select(el).selectAll("path")
           .transition()
-          .duration(1000)
+          .duration(400)
           .style("opacity", 1)
           .each("end", function() {
                   d3.select(this).on("mouseover", mouseover);

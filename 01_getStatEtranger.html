@@ -326,14 +326,9 @@ sapply('FR', function(lang) {
     freq = df$value
   )
 
-  leg &lt;- c(
-    unique(df$continent), 
-    head(df[order(df$value, decreasing = T),'country'], 7) %&gt;% unlist(use.names = F)
-  )
-  
   schart &lt;- seqd %&gt;&gt;% sunburst(
     count = T, colors = c(rev(swiTheme::swi_rpal[1:16]), 
-    rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = leg)
+    rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = &quot;&quot;)
   
   # hack
   schart$sizingPolicy$browser$padding &lt;- 1
@@ -345,14 +340,11 @@ sapply('FR', function(lang) {
     h2 = txt['title', lang], 
     descr = paste0(txt['descr', lang], &quot;&lt;br&gt;&lt;br&gt;&quot;,&quot;&lt;i&gt;&quot;, txt['descr2', lang], &quot;&lt;/i&gt;&quot;),
     h3 = &quot;&quot;,
-    source = paste0(txt['source',lang], &quot;: &quot;, txt['source.name', lang],
+    source = paste0(txt['source',lang], &quot;: &quot;, htmlLink(&quot;https://www.pxweb.bfs.admin.ch/Selection.aspx?px_language=fr&amp;px_db=px-x-0103010000_101&amp;px_tableid=px-x-0103010000_101%5Cpx-x-0103010000_101.px&amp;px_type=PX&quot;, 
+      txt['source.name', lang]),
      &quot; | &quot;,  txt['code', lang], &quot;: &quot;, htmlLink(&quot;https://github.com/timelyportfolio/sunburstR&quot;, &quot;sunburstR&quot;))
   )
-  
-            
 })</code></pre>
-<pre><code>## Warning in swi_widget(&quot;swissForeigners_sunburst_tmp.html&quot;, paste0(&quot;swissForeigners_sunburst_&quot;, : 
-##  Existing output html renamed to:./swissForeigners_sunburst_FR_init.html</code></pre>
 <pre><code>##   FR 
 ## TRUE</code></pre>
 <pre class="r"><code>if(plotByVisa) {

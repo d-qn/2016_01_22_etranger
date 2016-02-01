@@ -191,14 +191,9 @@ sapply('FR', function(lang) {
     freq = df$value
   )
 
-  leg <- c(
-    unique(df$continent), 
-    head(df[order(df$value, decreasing = T),'country'], 7) %>% unlist(use.names = F)
-  )
-  
   schart <- seqd %>>% sunburst(
     count = T, colors = c(rev(swiTheme::swi_rpal[1:16]), 
-    rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = leg)
+    rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = "")
   
   # hack
   schart$sizingPolicy$browser$padding <- 1
@@ -210,11 +205,10 @@ sapply('FR', function(lang) {
     h2 = txt['title', lang], 
     descr = paste0(txt['descr', lang], "<br><br>","<i>", txt['descr2', lang], "</i>"),
     h3 = "",
-    source = paste0(txt['source',lang], ": ", txt['source.name', lang],
+    source = paste0(txt['source',lang], ": ", htmlLink("https://www.pxweb.bfs.admin.ch/Selection.aspx?px_language=fr&px_db=px-x-0103010000_101&px_tableid=px-x-0103010000_101%5Cpx-x-0103010000_101.px&px_type=PX", 
+      txt['source.name', lang]),
      " | ",  txt['code', lang], ": ", htmlLink("https://github.com/timelyportfolio/sunburstR", "sunburstR"))
   )
-  
-            
 })
 
 
