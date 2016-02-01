@@ -37,7 +37,10 @@ library(countrycode)
 ###      SETTINGS
 ###  -------------------------------------------------------------------------------------------------------------  
 
+plotByVisa <- FALSE
+
 data.read <- read_csv("data/px-x-0103010000_101_cleaned_refined.csv")
+txt <- read.csv("data/translations_sunburst_foreigners.csv", row.names = 1, stringsAsFactors = F)
 n.threshold.merge <- 1000
 
 # wide to long transform
@@ -93,7 +96,6 @@ data[idx,'country'] <- names(countries_rename)[
 
 stopifnot(sum(data$tot) == totForeigners)
 
-
 ## Continent match
 countries <- data.frame(country = unique(data$country))
 countries$iso2 <- countryTranslations[match(countries$country,countryTranslations$FR), 'iso2']
@@ -137,51 +139,141 @@ data %>% group_by(country, continent) %>%
   dplyr::summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> dd
 stopifnot(sum(dd$value) == totForeigners)
 
+######  check country translation present! ################
+idx <- match(unique(data$country), countryTranslations$FR)
+toTranslate <- unique(data$country)[which(is.na(idx))]
+
+idx.m <- sapply(idx[!is.na(idx)], function(i) {
+  any(is.na(countryTranslations[i,]) | countryTranslations[i,] == "")  
+})
+
+if(any(idx.m)) stop()
+
+# create tmp translation file
+# trl <- data.frame(code = c(
+#   paste0(gsub(" ", "", toTranslate), ".country"), paste0(unique(data$continent), ".continent")),
+#   fr = c(toTranslate, unique(data$continent))
+# )
+# write.csv(trl, file = "data/translations_tmp.csv", row.names = F) 
+
 ###  -------------------------------------------------------------------------------------------------------------
 ###      PLOT SUNBURST
 ###  -------------------------------------------------------------------------------------------------------------  
+
 library(pipeR)
 library(swiRcharts)
 library(sunburstR)
 library(htmlwidgets)
 
-seq <- paste(dd$continent, gsub("(\\-|\\,)", " ", dd$country), sep = "-")
-seqd <- data.frame(sequence = seq, freq = dd$value)
-
-leg <- c(
-  unique(data$continent), 
-  head(dd[order(dd$value, decreasing = T),'country'], 7) %>% unlist(use.names = F)
-)
-schart <- seqd %>>% sunburst(
-  count = T, colors = c(rev(swiTheme::swi_rpal[1:16]), 
-  rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = leg)
-
-# hack
-schart$sizingPolicy$browser$padding <- 1
-schart$sizingPolicy$browser$defaultWidth <- "100%"
-schart$sizingPolicy$browser$defaultHeight <- 500
-
-saveWidget(schart, file = "swissForeigners_sunburst_tmp.html", selfcontained = FALSE, libdir = "js")
-
-swi_widget("swissForeigners_sunburst_tmp.html", "swissForeigners_sunburst.html",
-    h2 = "Les étrangers en Suisse", 
-    descr = paste0("La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Elle fait partie des pays européens qui ont l'un des plus hauts taux de population étrangère. Ce graphique montre le continent et la nationalité d'origine des 2 millions d'étrangers en Suisse en 2014", "<br><br>",
-    "<i>Placez votre curseur ou tapoter sur une région du graphique pour voir les chiffres exacts</i>"),
-    h3 = "")
 
 
-# shape the data for plot, recompute total values
-# data %>% group_by(country, continent, `Autorisation de résidence`) %>% 
-#   dplyr::summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> ddd
-# stopifnot(sum(ddd$value) == totForeigners)
-# 
-# 
-# seq2 <- paste(ddd$continent, gsub("(\\-|\\,)", " ", ddd$country), gsub("(\\-|\\,)", " ", ddd$`Autorisation de résidence`), sep = "-")
-# seqd2 <- data.frame(sequence = seq2, freq = ddd$value)
-# 
-# 
-# schart2 <- seqd2 %>>% sunburst(
-#   count = T, colors = rep(swiTheme::swi_rpal[1:16], 10))
+countries <- unique(dd$country)
+idx <- match(countries, countryTranslations$FR)
+
+sapply('FR', function(lang) {
+#sapply(lang %in% colnames(txt)) {
+
+  names(countries) <- countryTranslations[idx, lang]
+  names(countries)[which(is.na(names(countries)))] <- txt[paste0(gsub(" ", "", countries[which(is.na(names(countries)))]), ".country"), lang]
+  
+  stopifnot(!any(is.na(names(countries))))
+  
+  df <- dd
+  df$country <- names(countries)[match(df$country, countries)]
+  stopifnot(!any(is.na(df$country)))
+  
+  df$continent <- txt[paste0(df$continent,".continent"), lang]
+  stopifnot(!any(is.na(df$continent)))
+  
+  # create the sequence data
+  seqd <- data.frame(
+    sequence = paste(df$continent, gsub("(\\-|\\,)", " ", df$country), sep = "-"), 
+    freq = df$value
+  )
+
+  leg <- c(
+    unique(df$continent), 
+    head(df[order(df$value, decreasing = T),'country'], 7) %>% unlist(use.names = F)
+  )
+  
+  schart <- seqd %>>% sunburst(
+    count = T, colors = c(rev(swiTheme::swi_rpal[1:16]), 
+    rep(swiTheme::swi_rpal[1:16], 10)), legendOrder = leg)
+  
+  # hack
+  schart$sizingPolicy$browser$padding <- 1
+  schart$sizingPolicy$browser$defaultWidth <- "100%"
+  
+  saveWidget(schart, file = "swissForeigners_sunburst_tmp.html", selfcontained = FALSE, libdir = "js")
+  
+  swi_widget("swissForeigners_sunburst_tmp.html", paste0("swissForeigners_sunburst_", lang, ".html"),
+    h2 = txt['title', lang], 
+    descr = paste0(txt['descr', lang], "<br><br>","<i>", txt['descr2', lang], "</i>"),
+    h3 = "",
+    source = paste0(txt['source',lang], ": ", txt['source.name', lang],
+     " | ",  txt['code', lang], ": ", htmlLink("https://github.com/timelyportfolio/sunburstR", "sunburstR"))
+  )
+  
+            
+})
 
 
 
+if(plotByVisa) {
+ # shape the data for plot, recompute total values
+data %>% group_by(`Autorisation de résidence`) %>% dplyr::summarise(alue = sum(tot, na.rm = T)) %>% 
+  ungroup()
+
+ddd <- data %>% 
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` %in% 
+  c('Diplomate, fonctionnaire international avec immunité diplomatique', 
+    'Fonctionnaire international sans immunité diplomatique'), 
+    "international", `Autorisation de résidence`))  %>%
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Personne admise à titre provisoire (F)", 
+    "provisoire (F)", `Autorisation de résidence`))  %>%
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Requérant d'asile (N)", 
+    "asile (N)", `Autorisation de résidence`))  %>% 
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation d'établissement (C)", 
+    "permis C", `Autorisation de résidence`))  %>% 
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation de séjour (B)", 
+    "permis B", `Autorisation de résidence`))  %>%  
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation de séjour de courte durée (L)", 
+    "courte L", `Autorisation de résidence`))  %>%  
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation de séjour avec activité lucrative (Ci)", 
+    "permis Ci", `Autorisation de résidence`))
+  
+
+ddd %>% group_by(continent, `Autorisation de résidence`, country) %>% 
+  dplyr::summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> ddd
+stopifnot(sum(ddd$value) == totForeigners)
+
+seq2 <- paste(gsub("(\\-|\\,)", " ", ddd$`Autorisation de résidence`), ddd$continent, 
+  gsub("(\\-|\\,)", " ", ddd$country), sep = "-")
+seqd2 <- data.frame(sequence = seq2, freq = ddd$value)
+
+schart2 <- seqd2 %>>% sunburst(
+  count = T, colors = rep(swiTheme::swi_rpal[1:16], 10))
+
+
+ # hack
+schart2$sizingPolicy$browser$padding <- 1
+schart2$sizingPolicy$browser$defaultWidth <- "100%"
+schart2$sizingPolicy$browser$defaultHeight <- 500
+  
+saveWidget(schart2, file = "swissForeigners2_sunburst_tmp.html", selfcontained = FALSE, libdir = "js")
+  
+  swi_widget("swissForeigners2_sunburst_tmp.html", paste0("swissForeignersPermis_sunburst_", 'fr', ".html"),
+    h2 = "Les étrangers de Suisse",
+    descr = paste0("La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Ce graphique montre le type de permis de séjour, le continent et la nationalité d'origine des 2 millions d'étrangers en Suisse en 2014", "<br><br><i>", "Placez votre curseur ou tapoter sur une région du graphique pour voir les chiffres exacts</i>"),
+    h3 = "",
+    source = paste0(txt['source',lang], ": ", txt['source.name', lang],
+     " | ",  txt['code', lang], ": sunburstR")
+  )
+  
+}

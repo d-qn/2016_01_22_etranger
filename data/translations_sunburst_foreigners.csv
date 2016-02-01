@@ -1,0 +1,18 @@
+code,EN,FR,DE,IT,PT,AR,RU,ES,JA,ZH
+title,,Les étrangers en Suisse,,,,,,,,
+descr,,"La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Elle fait partie des pays européens qui ont l'un des plus hauts taux de population étrangère. Ce graphique montre le continent et la nationalité d'origine des 2 millions d'étrangers en Suisse en 2014",,,,,,,,
+descr2,,Placez votre curseur ou tapotez sur une région du graphique pour voir les chiffres exacts,,,,,,,,
+source,source,source,Quelle,Fonte,fonte,المصدر,Источник:,Fuente,出典,来源
+source.name,,Office fédéral de la statistique,,,,,,,,
+code,code,code,Code,Codice,código,الرمز,Код,código,コード,代码
+autrespays.country,Other countries,Autres pays,,,,,,,,
+Macédoine.country,Macedonia,Macédoine,,,,,,,,
+Kosovo.country,Kosovo,Kosovo,,,,,,,,
+inconnu.country,unkown,inconnu,,,,,,,,
+Europe.continent,Europe,Europe,,,,,,,,
+Asia.continent,Asia,Asie,,,,,,,,
+Africa.continent,Africa,Afrique,,,,,,,,
+Americas.continent,Americas,Amériques,,,,,,,,
+Oceania.continent,Oceania,Océanie,,,,,,,,
+inconnu.continent,unkown,inconnu,,,,,,,,
+legend,Legend,Légende,,,,,,,,
