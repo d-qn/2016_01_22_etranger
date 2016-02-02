@@ -117,8 +117,8 @@ library(countrycode)
 
 plotByVisa &lt;- FALSE
 
-data.read &lt;- read_csv(&quot;data/px-x-0103010000_101_cleaned_refined.csv&quot;)
-txt &lt;- read.csv(&quot;data/translations_sunburst_foreigners.csv&quot;, row.names = 1, stringsAsFactors = F)
+data.read &lt;- read_csv(&quot;input/px-x-0103010000_101_cleaned_refined.csv&quot;)
+txt &lt;- read.csv(&quot;input/translations_sunburst_foreigners.csv&quot;, row.names = 1, stringsAsFactors = F)
 n.threshold.merge &lt;- 1000
 
 # wide to long transform
@@ -300,8 +300,6 @@ library(swiRcharts)</code></pre>
 <pre class="r"><code>library(sunburstR)
 library(htmlwidgets)
 
-
-
 countries &lt;- unique(dd$country)
 idx &lt;- match(countries, countryTranslations$FR)
 
@@ -345,66 +343,27 @@ sapply('FR', function(lang) {
      &quot; | &quot;,  txt['code', lang], &quot;: &quot;, htmlLink(&quot;https://github.com/timelyportfolio/sunburstR&quot;, &quot;sunburstR&quot;))
   )
 })</code></pre>
-<pre><code>##   FR 
-## TRUE</code></pre>
-<pre class="r"><code>if(plotByVisa) {
- # shape the data for plot, recompute total values
-data %&gt;% group_by(`Autorisation de résidence`) %&gt;% dplyr::summarise(alue = sum(tot, na.rm = T)) %&gt;% 
-  ungroup()
-
-ddd &lt;- data %&gt;% 
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` %in% 
-  c('Diplomate, fonctionnaire international avec immunité diplomatique', 
-    'Fonctionnaire international sans immunité diplomatique'), 
-    &quot;international&quot;, `Autorisation de résidence`))  %&gt;%
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
-    &quot;Personne admise à titre provisoire (F)&quot;, 
-    &quot;provisoire (F)&quot;, `Autorisation de résidence`))  %&gt;%
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
-    &quot;Requérant d'asile (N)&quot;, 
-    &quot;asile (N)&quot;, `Autorisation de résidence`))  %&gt;% 
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
-    &quot;Titulaire d'une autorisation d'établissement (C)&quot;, 
-    &quot;permis C&quot;, `Autorisation de résidence`))  %&gt;% 
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
-    &quot;Titulaire d'une autorisation de séjour (B)&quot;, 
-    &quot;permis B&quot;, `Autorisation de résidence`))  %&gt;%  
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
-    &quot;Titulaire d'une autorisation de séjour de courte durée (L)&quot;, 
-    &quot;courte L&quot;, `Autorisation de résidence`))  %&gt;%  
-  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
-    &quot;Titulaire d'une autorisation de séjour avec activité lucrative (Ci)&quot;, 
-    &quot;permis Ci&quot;, `Autorisation de résidence`))
-  
-
-ddd %&gt;% group_by(continent, `Autorisation de résidence`, country) %&gt;% 
-  dplyr::summarise(value = sum(tot, na.rm = T)) %&gt;% ungroup() -&gt; ddd
-stopifnot(sum(ddd$value) == totForeigners)
-
-seq2 &lt;- paste(gsub(&quot;(\\-|\\,)&quot;, &quot; &quot;, ddd$`Autorisation de résidence`), ddd$continent, 
-  gsub(&quot;(\\-|\\,)&quot;, &quot; &quot;, ddd$country), sep = &quot;-&quot;)
-seqd2 &lt;- data.frame(sequence = seq2, freq = ddd$value)
-
-schart2 &lt;- seqd2 %&gt;&gt;% sunburst(
-  count = T, colors = rep(swiTheme::swi_rpal[1:16], 10))
-
-
- # hack
-schart2$sizingPolicy$browser$padding &lt;- 1
-schart2$sizingPolicy$browser$defaultWidth &lt;- &quot;100%&quot;
-schart2$sizingPolicy$browser$defaultHeight &lt;- 500
-  
-saveWidget(schart2, file = &quot;swissForeigners2_sunburst_tmp.html&quot;, selfcontained = FALSE, libdir = &quot;js&quot;)
-  
-  swi_widget(&quot;swissForeigners2_sunburst_tmp.html&quot;, paste0(&quot;swissForeignersPermis_sunburst_&quot;, 'fr', &quot;.html&quot;),
-    h2 = &quot;Les étrangers de Suisse&quot;,
-    descr = paste0(&quot;La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Ce graphique montre le type de permis de séjour, le continent et la nationalité d'origine des 2 millions d'étrangers en Suisse en 2014&quot;, &quot;&lt;br&gt;&lt;br&gt;&lt;i&gt;&quot;, &quot;Placez votre curseur ou tapoter sur une région du graphique pour voir les chiffres exacts&lt;/i&gt;&quot;),
-    h3 = &quot;&quot;,
-    source = paste0(txt['source',lang], &quot;: &quot;, txt['source.name', lang],
-     &quot; | &quot;,  txt['code', lang], &quot;: sunburstR&quot;)
-  )
-  
-}</code></pre>
+<pre><code>## $FR
+## NULL</code></pre>
+</div>
+<div id="open-the-html-files-and-remove-this-code-find-replace" class="section level3">
+<h3>Open the HTML files and remove this code (find &amp; replace):</h3>
+<blockquote>
+<div class="sunburst-sidebar">
+<pre><code>     &lt;input type=&quot;checkbox&quot; class=&quot;sunburst-togglelegend&quot;&gt;Legend&lt;/input&gt;         &lt;div class=&quot;sunburst-legend&quot; style=&quot;visibility:hidden;&quot;&gt;&lt;/div&gt;       &lt;/div&gt; </code></pre>
+</blockquote>
+</div>
+<div id="repalce-sunburst.js-in-sunburst-binding-0.1-by-the-edited-version.-changes-are" class="section level3">
+<h3>Repalce sunburst.js in sunburst-binding-0.1: by the edited version. Changes are</h3>
+<blockquote>
+<p>+ ‘/’ + d3.format(“1.2s”)(totalSize),</p>
+</blockquote>
+<p>Replaced by</p>
+<blockquote>
+<p>d3.format(“1.2”)(d.value),</p>
+</blockquote>
+<p>To change the formrating inside the sunburst</p>
+<p>And decrease the transition time to 400 ms</p>
 </div>
 
 

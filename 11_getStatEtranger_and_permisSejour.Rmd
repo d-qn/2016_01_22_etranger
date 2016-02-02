@@ -39,8 +39,8 @@ library(countrycode)
 
 plotByVisa <- FALSE
 
-data.read <- read_csv("input/px-x-0103010000_101_cleaned_refined.csv")
-txt <- read.csv("input/translations_sunburst_foreigners.csv", row.names = 1, stringsAsFactors = F)
+data.read <- read_csv("data/px-x-0103010000_101_cleaned_refined.csv")
+txt <- read.csv("data/translations_sunburst_foreigners.csv", row.names = 1, stringsAsFactors = F)
 n.threshold.merge <- 1000
 
 # wide to long transform
@@ -224,3 +224,63 @@ To change the formrating inside the sunburst
 And decrease the transition time to 400 ms
 
 
+
+```{r, echo = F}
+if(plotByVisa) {
+ # shape the data for plot, recompute total values
+data %>% group_by(`Autorisation de résidence`) %>% dplyr::summarise(alue = sum(tot, na.rm = T)) %>% 
+  ungroup()
+
+ddd <- data %>% 
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` %in% 
+  c('Diplomate, fonctionnaire international avec immunité diplomatique', 
+    'Fonctionnaire international sans immunité diplomatique'), 
+    "international", `Autorisation de résidence`))  %>%
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Personne admise à titre provisoire (F)", 
+    "provisoire (F)", `Autorisation de résidence`))  %>%
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Requérant d'asile (N)", 
+    "asile (N)", `Autorisation de résidence`))  %>% 
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation d'établissement (C)", 
+    "permis C", `Autorisation de résidence`))  %>% 
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation de séjour (B)", 
+    "permis B", `Autorisation de résidence`))  %>%  
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation de séjour de courte durée (L)", 
+    "courte L", `Autorisation de résidence`))  %>%  
+  mutate(`Autorisation de résidence` = ifelse(`Autorisation de résidence` ==
+    "Titulaire d'une autorisation de séjour avec activité lucrative (Ci)", 
+    "permis Ci", `Autorisation de résidence`))
+  
+
+ddd %>% group_by(continent, `Autorisation de résidence`, country) %>% 
+  dplyr::summarise(value = sum(tot, na.rm = T)) %>% ungroup() -> ddd
+stopifnot(sum(ddd$value) == totForeigners)
+
+seq2 <- paste(gsub("(\\-|\\,)", " ", ddd$`Autorisation de résidence`), ddd$continent, 
+  gsub("(\\-|\\,)", " ", ddd$country), sep = "-")
+seqd2 <- data.frame(sequence = seq2, freq = ddd$value)
+
+schart2 <- seqd2 %>>% sunburst(
+  count = T, colors = rep(swiTheme::swi_rpal[1:16], 10))
+
+
+ # hack
+schart2$sizingPolicy$browser$padding <- 1
+schart2$sizingPolicy$browser$defaultWidth <- "100%"
+schart2$sizingPolicy$browser$defaultHeight <- 500
+  
+saveWidget(schart2, file = "swissForeigners2_sunburst_tmp.html", selfcontained = FALSE, libdir = "js")
+  
+  swi_widget("swissForeigners2_sunburst_tmp.html", paste0("swissForeignersPermis_sunburst_", 'fr', ".html"),
+    h2 = "Les étrangers de Suisse",
+    descr = paste0("La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Ce graphique montre le type de permis de séjour, le continent et la nationalité d'origine des 2 millions d'étrangers en Suisse en 2014", "<br><br><i>", "Placez votre curseur ou tapoter sur une région du graphique pour voir les chiffres exacts</i>"),
+    h3 = "",
+    source = paste0(txt['source',lang], ": ", txt['source.name', lang],
+     " | ",  txt['code', lang], ": sunburstR")
+  )
+  
+}

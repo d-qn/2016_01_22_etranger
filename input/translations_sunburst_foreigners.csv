@@ -1,7 +1,7 @@
 code,EN,FR,DE,IT,PT,AR,RU,ES,JA,ZH
 title,,Les étrangers en Suisse,,,,,,,,
-descr,,"La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Ce graphique montre le continent (anneau intérieur) et la nationalité (anneau extérieur) d'origine des 2 millions d'étrangers en Suisse en 2014",,,,,,,,
-descr2,,Placez votre curseur ou tapotez sur une région du graphique pour voir les chiffres exacts,,,,,,,,
+descr,,"La Suisse compte 2 millions d'étrangers, soit un quart de sa population permanente. Ce graphique montre le continent (anneau intérieur) et la nationalité (anneau extérieur) d'origine des 2 millions d'étrangers en Suisse en 2014.",,,,,,,,
+descr2,,Placez votre curseur ou tapotez sur une région du graphique pour voir le nombre exact de ressortissants d'une nationalité ou d'un continent.,,,,,,,,
 source,source,source,Quelle,Fonte,fonte,المصدر,Источник:,Fuente,出典,来源
 source.name,,Office fédéral de la statistique,,,,,,,,
 code,code,code,Code,Codice,código,الرمز,Код,código,コード,代码
@@ -15,4 +15,3 @@ Africa.continent,Africa,Afrique,,,,,,,,
 Americas.continent,Americas,Amériques,,,,,,,,
 Oceania.continent,Oceania,Océanie,,,,,,,,
 inconnu.continent,unkown,inconnu,,,,,,,,
-legend,Legend,Légende,,,,,,,,
